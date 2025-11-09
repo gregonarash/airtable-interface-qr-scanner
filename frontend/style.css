@@ -29,3 +29,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom styles for QR code scanner */
+#html5qr-code-full-region {
+  max-width: 150px;
+  max-height: 150px;
+}
+
+#html5qr-code-full-region > div {
+  max-width: 150px !important;
+  max-height: 150px !important;
+}
+
+#html5qr-code-full-region video {
+  max-width: 150px !important;
+  max-height: 150px !important;
+  object-fit: cover;
+}
