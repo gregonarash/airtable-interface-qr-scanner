@@ -21,6 +21,22 @@ function getCustomProperties(base: any) {
       field.type === FieldType.BARCODE
   );
 
+  // Find number fields for stock and price
+  const numberFields = table.fields.filter(
+    (field: any) =>
+      field.type === FieldType.NUMBER ||
+      field.type === FieldType.CURRENCY ||
+      field.type === FieldType.PERCENT
+  );
+
+  const stockField = table.fields.find((field: any) =>
+    field.name.toLowerCase().includes("stock")
+  );
+
+  const priceField = table.fields.find((field: any) =>
+    field.name.toLowerCase().includes("price")
+  );
+
   return [
     {
       key: "table",
@@ -39,6 +55,29 @@ function getCustomProperties(base: any) {
         field.config.type === FieldType.BARCODE,
       defaultValue: textFields[0],
     },
+    {
+      key: "stockField",
+      label: "Quantity on Hand Field",
+      type: "field" as const,
+      table: table,
+      shouldFieldBeAllowed: (field: any) =>
+        field.config.type === FieldType.NUMBER ||
+        field.config.type === FieldType.CURRENCY ||
+        field.config.type === FieldType.PERCENT ||
+        field.config.type === FieldType.ROLLUP,
+      defaultValue: stockField || numberFields[0],
+    },
+    {
+      key: "priceField",
+      label: "Selling Price Field",
+      type: "field" as const,
+      table: table,
+      shouldFieldBeAllowed: (field: any) =>
+        field.config.type === FieldType.NUMBER ||
+        field.config.type === FieldType.CURRENCY ||
+        field.config.type === FieldType.PERCENT,
+      defaultValue: priceField || numberFields[1] || numberFields[0],
+    },
   ];
 }
 
@@ -50,6 +89,8 @@ function App() {
 
   const table = customPropertyValueByKey.table as any;
   const lookupField = customPropertyValueByKey.lookupField as any;
+  const stockField = customPropertyValueByKey.stockField as any;
+  const priceField = customPropertyValueByKey.priceField as any;
   const records = useRecords(table);
 
   // Find the matching record
@@ -109,12 +150,12 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen p-4 gap-4">
+    <div className="flex h-screen p-4 gap-4 bg">
       {/* Left side - Camera scanner */}
-      <div className="w-[150px] h-[150px] flex-shrink-0">
+      <div className="w-[380px] flex-shrink-0 bg-slate-100 rounded-md flex items-center justify-center">
         <Html5QrcodePlugin
           fps={10}
-          qrbox={{ width: 120, height: 120 }}
+          qrbox={{ width: 250, height: 250 }}
           qrCodeSuccessCallback={(decodedText, decodedResult) => {
             console.log(decodedText, decodedResult);
             setScannedItem(decodedText);
@@ -142,13 +183,40 @@ function App() {
             {/* Conditional buttons/warnings below */}
             <div className="mt-6">
               {matchingRecord ? (
-                // Item found - show Open Details button
-                <button
-                  onClick={handleOpenDetails}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-                >
-                  Open Details
-                </button>
+                // Item found - show stock, price, and Open Details button
+                <div>
+                  {/* Stock and Price Display */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 space-y-3">
+                    {stockField && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 font-medium">Quantity on Hand:</span>
+                        <span
+                          className={`text-lg font-bold ${
+                            (matchingRecord.getCellValue(stockField) as number || 0) <= 0
+                              ? "text-red-600"
+                              : "text-gray-900"
+                          }`}
+                        >
+                          {matchingRecord.getCellValueAsString(stockField) || "0"}
+                        </span>
+                      </div>
+                    )}
+                    {priceField && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 font-medium">Selling Price:</span>
+                        <span className="text-lg font-bold text-gray-900">
+                          {matchingRecord.getCellValueAsString(priceField) || "N/A"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleOpenDetails}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                  >
+                    Open Details
+                  </button>
+                </div>
               ) : (
                 // Item not found - show warning and Add Item button
                 <div>
